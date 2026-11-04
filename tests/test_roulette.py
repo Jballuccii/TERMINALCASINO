@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
-from casino.games.roulette.roulette import Roulette, AmericanRoulette
+from casino.games.roulette.base import Roulette
+from casino.games.roulette.variants import AmericanRoulette
 from casino.accounts import Account
 from casino.config import Config
 from casino.types import GameContext
@@ -14,23 +15,23 @@ def make_roulette(num_players: int = 1, balance: int = 100):
 
 def test_normalize_color():
     """Shorthand, full names, and unrecognized input for color normalization."""
-    assert Roulette.normalize_color("r") == "red"
-    assert Roulette.normalize_color("RED") == "red"
-    assert Roulette.normalize_color("g") == "green"
-    assert Roulette.normalize_color("Green") == "green"
-    assert Roulette.normalize_color("b") == "black"
-    assert Roulette.normalize_color("BLACK") == "black"
+    assert AmericanRoulette.normalize_color("r") == "red"
+    assert AmericanRoulette.normalize_color("RED") == "red"
+    assert AmericanRoulette.normalize_color("g") == "green"
+    assert AmericanRoulette.normalize_color("Green") == "green"
+    assert AmericanRoulette.normalize_color("b") == "black"
+    assert AmericanRoulette.normalize_color("BLACK") == "black"
     # Unrecognized input is passed through unchanged
-    assert Roulette.normalize_color("purple") == "purple"
+    assert AmericanRoulette.normalize_color("purple") == "purple"
 
 
 def test_normalize_type():
     """Shorthand, full names, and unrecognized input for bet type normalization."""
-    assert Roulette.normalize_type("c") == "color"
-    assert Roulette.normalize_type("COLOR") == "color"
-    assert Roulette.normalize_type("n") == "number"
-    assert Roulette.normalize_type("Number") == "number"
-    assert Roulette.normalize_type("garbage") == "garbage"
+    assert AmericanRoulette.normalize_type("c") == "color"
+    assert AmericanRoulette.normalize_type("COLOR") == "color"
+    assert AmericanRoulette.normalize_type("n") == "number"
+    assert AmericanRoulette.normalize_type("Number") == "number"
+    assert AmericanRoulette.normalize_type("garbage") == "garbage"
 
 
 def test_roulette_sort_key_orders_zero_and_double_zero_first():
@@ -135,7 +136,7 @@ def test_payout_credits_correct_player_when_an_earlier_player_skips_betting():
 # answers into the game, instead of a real person at the keyboard.
 # ---------------------------------------------------------------------------
 
-ROULETTE_MODULE = "casino.games.roulette.roulette"
+ROULETTE_MODULE = "casino.games.roulette.variants.american"
 
 
 def run_submit_bets(roulette, accounts, inputs):
@@ -144,7 +145,7 @@ def run_submit_bets(roulette, accounts, inputs):
     with patch(f"{ROULETTE_MODULE}.cinput", side_effect=inputs), \
          patch(f"{ROULETTE_MODULE}.cprint"), \
          patch(f"{ROULETTE_MODULE}.clear_screen"), \
-         patch(f"{ROULETTE_MODULE}.display_roulette_topbar"), \
+         patch.object(roulette.view, "display_topbar"), \
          patch(f"{ROULETTE_MODULE}.sleep"), \
          patch("builtins.print"):
         return roulette.submit_bets(ctx)
@@ -229,7 +230,7 @@ def test_submit_bets_skips_broke_player_and_moves_on():
     with patch(f"{ROULETTE_MODULE}.cinput", side_effect=["y", "10", "c", "red"]), \
          patch(f"{ROULETTE_MODULE}.cprint", side_effect=fake_cprint), \
          patch(f"{ROULETTE_MODULE}.clear_screen"), \
-         patch(f"{ROULETTE_MODULE}.display_roulette_topbar"):
+         patch.object(roulette.view, "display_topbar"):
         roulette.submit_bets(ctx)
 
     assert str(broke_player.aid) not in roulette.bets
